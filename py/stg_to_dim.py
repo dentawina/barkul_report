@@ -5,7 +5,7 @@ import pandas as pd
 @task()
 def load_fact_fo() -> pd.DataFrame:
 
-    query = f"select distinct(order_id),to_char(order_date, 'YYYYMMDD') as date_id, tanggal,order_date, user_id, invoice_code, product_id, distributor_id, principal_id,productbrand_id,depo_id,subtotal,total,total_dpp,total_ppn,total_voucher from stg.stg_orders order by order_id desc;"
+    query = f"select distinct(order_id),to_char(order_date, 'YYYYMMDD') as date_id, tanggal,order_date, user_id, invoice_code, product_id, distributor_id, principal_id,productbrand_id,depo_id,subtotal,dpp,ppn,discount,golden_promo,total,total_final,total_dpp,total_ppn,total_voucher,total_discount,total_golden_promo from stg.stg_baru order by order_id desc;"
     
     connection_block = SqlAlchemyConnector.load("pg-database")
     with connection_block.get_connection(begin=False) as engine:
@@ -73,14 +73,12 @@ def insert_dim_product(table_dim_product: str, schema_dm: str, df_dim_product):
 @task()
 def load_dim_product_brand() -> pd.DataFrame:
 
-    query = f"select distinct(productbrand_id) as id, productbrand_name from stg.stg_orders order by id asc;"
-
+    query = f"select distinct(productbrand_id) as id, productbrand_name from stg.stg_baru where productbrand_id in (324,325,326,327,328,329,330,331,334,335,336,337,338,339,340,341,342,343,356,357,358,359,360,361,362,363,364,365,366,367,373,377) order by id asc;"
     connection_block = SqlAlchemyConnector.load("pg-database")
     with connection_block.get_connection(begin=False) as engine:
         df_dim_product_brand = pd.read_sql(query, con=engine)
         print(df_dim_product_brand)
         print(df_dim_product_brand.dtypes)
-
         return df_dim_product_brand
 
 
@@ -91,6 +89,23 @@ def insert_dim_product_brand(table_dim_product_brand: str, schema_dm: str, df_di
     with connection_block.get_connection(begin=False)as engine:
         df_dim_product_brand.to_sql(name=table_dim_product_brand, schema=schema_dm,
                               if_exists="replace", index=False, con=engine)
+@task()
+def load_dim_product_brand_nothub() -> pd.DataFrame:
+
+    query = f"select distinct(productbrand_id) as id, productbrand_name from stg.stg_baru where productbrand_id in (2,3,4,5,6,15,33,44,46,48,50,51,53,54,59,60,65,66,67,68,70,71,75,76,81,82,83,84,103,170,183,293,295,297,298,299,300,301,302,303,304,305,306,307,309,310,311,346,349,350,351,352,353,354,355,368,369) order by id asc;"
+    connection_block = SqlAlchemyConnector.load("pg-database")
+    with connection_block.get_connection(begin=False) as engine:
+        df_dim_product_brand_nothub = pd.read_sql(query, engine)
+        print(df_dim_product_brand_nothub)
+        print(df_dim_product_brand_nothub.dtypes)
+        return df_dim_product_brand_nothub
+
+@task()
+def insert_dim_product_brand_nothub(table_dim_product_brand_nothub: str, schema_dm: str, df_dim_product_brand_nothub):
+    connection_block = SqlAlchemyConnector.load("pg-database")
+    with connection_block.get_connection(begin=False)as engine: 
+        df_dim_product_brand_nothub.to_sql(name=table_dim_product_brand_nothub, schema=schema_dm,
+                              if_exists="replace", index=False,con=engine)
         
 @task()
 def load_dim_principal() -> pd.DataFrame:
@@ -117,7 +132,7 @@ def insert_dim_principal(table_dim_principal: str, schema_dm: str, df_dim_princi
 @task()
 def load_dim_distributor() -> pd.DataFrame:
 
-    query = f"select distinct(distributor_id) as id, distributor_name, CASE WHEN distributor_id IN (17, 18, 19, 21, 31) THEN 'Medan' WHEN distributor_id IN (22, 23, 24, 25, 26) THEN 'Palembang' WHEN distributor_id IN (33, 34, 35, 36, 37) THEN 'Botabek' END AS area from stg.stg_orders order by id asc;"
+    query = f"select distinct(distributor_id) as id, distributor_name, CASE WHEN distributor_id IN (40, 41, 42, 43, 44) THEN 'Jatim' WHEN distributor_id IN (17, 18, 19, 21, 31) THEN 'Medan' WHEN distributor_id IN (22, 23, 24, 25, 26) THEN 'Palembang' WHEN distributor_id IN (33, 34, 35, 36, 37) THEN 'Botabek' END AS area from stg.stg_orders order by id asc;"
 
     connection_block = SqlAlchemyConnector.load("pg-database")
     with connection_block.get_connection(begin=False) as engine:
@@ -135,6 +150,24 @@ def insert_dim_distributor(table_dim_distributor: str, schema_dm: str, df_dim_di
     with connection_block.get_connection(begin=False)as engine:
         df_dim_distributor.to_sql(name=table_dim_distributor, schema=schema_dm,
                               if_exists="replace", index=False, con=engine)
+
+@task()
+def load_dim_distributor_principal() -> pd.DataFrame:
+
+    query = f"select distinct(distributor_id) as id, distributor_name, CASE WHEN distributor_id IN (1,2,3) THEN 'SNS' WHEN distributor_id = 7 THEN 'TNS' WHEN distributor_id = 12 THEN 'RKI' WHEN distributor_id = 13 THEN 'INC' WHEN distributor_id = 14 THEN 'MRI' WHEN distributor_id = 10 THEN 'WP' WHEN distributor_id = 27 THEN 'SYB' WHEN distributor_id = 30 THEN 'PRM' WHEN distributor_id = 32 THEN 'GAS' WHEN distributor_id = 39 THEN 'ARTA' ELSE NULL  END AS distributor_principal  FROM stg.stg_baru ORDER BY id ASC;"
+    connection_block = SqlAlchemyConnector.load("pg-database")
+    with connection_block.get_connection(begin=False) as engine:
+        df_dim_distributor_principal = pd.read_sql(query, engine)
+        print(df_dim_distributor_principal)
+        print(df_dim_distributor_principal.dtypes)
+        return df_dim_distributor_principal
+
+@task()
+def insert_dim_distributor_principal(table_dim_distributor_principal: str, schema_dm: str, df_dim_distributor_principal):
+    connection_block = SqlAlchemyConnector.load("pg-database")
+    with connection_block.get_connection(begin=False)as engine:
+        df_dim_distributor_principal.to_sql(name=table_dim_distributor_principal, schema=schema_dm,
+                              if_exists="replace", index=False,con=engine)
 
 @task()
 def load_dim_depo() -> pd.DataFrame:
@@ -220,22 +253,32 @@ def insert_to_dm():
     table_dim_product_brand = "dim_product_brand"
     insert_dim_product_brand(table_dim_product_brand, schema_dm, df_dim_product_brand)
     
-    """5. dim_principal"""
+    """5. dim_product_brand_nothub"""
+    df_dim_product_brand_nothub = load_dim_product_brand_nothub()
+    table_dim_product_brand_nothub = "dim_product_brand_nothub"
+    insert_dim_product_brand_nothub(table_dim_product_brand_nothub, schema_dm, df_dim_product_brand_nothub)
+    
+    """6. dim_principal"""
     df_dim_principal = load_dim_principal()
     table_dim_principal = "dim_principal"
     insert_dim_principal(table_dim_principal, schema_dm, df_dim_principal)
 
-    """6. dim_distributor"""
+    """7. dim_distributor"""
     df_dim_distributor = load_dim_distributor()
     table_dim_distributor = "dim_distributor"
     insert_dim_distributor(table_dim_distributor, schema_dm, df_dim_distributor)
     
-    """7. dim_depo"""
+    """8. dim_distributor_principal"""
+    df_dim_distributor_principal = load_dim_distributor_principal()
+    table_dim_distributor_principal = "dim_distributor_principal"
+    insert_dim_distributor_principal(table_dim_distributor_principal, schema_dm, df_dim_distributor_principal)
+    
+    """9. dim_depo"""
     df_dim_depo = load_dim_depo()
     table_dim_depo = "dim_depo"
     insert_dim_depo(table_dim_depo, schema_dm, df_dim_depo)
     
-    """8. dim_date"""
+    """10. dim_date"""
     df_dim_date = load_dim_date()
     table_dim_date = "dim_date"
     insert_dim_date(table_dim_date, schema_dm, df_dim_date)

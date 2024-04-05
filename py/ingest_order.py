@@ -23,11 +23,18 @@ def fetching_data(yesterday: str, yesterday_7: str) -> pd.DataFrame:
         o.created_at as order_date,
         o.id as order_id,
         o.invoice_code,
-        o.total,
+	    o.total,
+        o.total_final,
         o.total_dpp,
         o.total_ppn,
-	    total_voucher,
+	    o.total_voucher,
+        o.total_discount,
+        o.total_golden_promo,
         opd.subtotal,
+        opd.dpp,
+        opd.golden_promo,
+        opd.ppn,
+        opd.discount,
         u.id as user_id,
         CONCAT(up.first_name ,' ', up.last_name) as customer,
         TRIM(UPPER(u.referral_by)) AS referral_by,
@@ -62,8 +69,7 @@ def fetching_data(yesterday: str, yesterday_7: str) -> pd.DataFrame:
         on prin.id = pb.principal_id
         left join distributors dist
         on dist.id = prin.distributor_id
-    where dist.name like 'HUB%'
-    AND CONVERT(date, o.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') = CONVERT(date, DATEADD(day, -1, GETDATE()))
+    WHERE CONVERT(date, o.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'SE Asia Standard Time') = CONVERT(date, DATEADD(day, -1, GETDATE()))
     order by o.created_at ASC;"""
     )
     
@@ -88,7 +94,7 @@ def ingest_orders():
     yesterday = today + timedelta(-1)
     yesterday_7 = yesterday + timedelta(-6)
     df = fetching_data(yesterday, yesterday_7)
-    dataset_file = f"order_{yesterday}"
+    dataset_file = f"orders_{yesterday}"
     write_parquet(df, dataset_file)
 
 
@@ -96,7 +102,7 @@ def ingest_orders():
 def read_parquet(date_key: str) -> pd.DataFrame:
     yesterday = datetime.now() - timedelta(days=1)
     date_keys = yesterday.strftime("%Y-%m-%d")
-    path = (f"/home/ubuntu/work/bakul_report/dwh/data/order_{date_keys}.parquet")
+    path = (f"/home/ubuntu/work/bakul_report/dwh/data/orders_{date_keys}.parquet")
     df_new = pd.read_parquet(path)
     print(df_new.dtypes)
     print(df_new)
